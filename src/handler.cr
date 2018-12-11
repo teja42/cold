@@ -48,7 +48,7 @@ module Cold
             rescue ex
                puts "Warning : Exception raised while trying to reply to : #{context.request.method} #{context.request.path}. Check log for more info"
 
-               begin # Because if the headers have already been sent then respond_with_error would cause an error
+               begin # Because if the headers have already been sent then respond_with_error call would cause an error
                   context.response.respond_with_error
                rescue ex
                end
