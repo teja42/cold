@@ -1,5 +1,7 @@
+# native modules
 require "http/server"
 
+# custom modules
 require "./handler.cr"
 
 module Cold
@@ -7,21 +9,12 @@ module Cold
    class Server
 
       @port : Int32
-      # @routeInfo : NamedTuple()
-
-      # @routeInfo
-      # routeInfo is a named tuple
-      # contains proc to execute on a specific route
+      @handler : Cold::Handler 
+      # @handler is responsible for handling the incomming requests
 
       def initialize
          @port = 80
-         # @routeInfo = {
-         #    "GET": {
-         #       "/": ->(){
-         #          puts "Hello, world!"
-         #       }
-         #    }
-         # }
+         @handler = Cold::Handler.new
       end
 
       def listen(port : Int32)
@@ -32,7 +25,7 @@ module Cold
          end
 
          server = HTTP::Server.new([
-            Cold::Handler.new
+            @handler
          ])
 
          begin
@@ -46,10 +39,10 @@ module Cold
 
       end
 
-      # def on(method : String , path : String , &block : Tuple -> _)
-      #    method = method.to_s.upcase
-      #    @routeInfo[method][path] = block
-      # end
+      def on(method : String , path : String , &block : Cold::Facade -> _)
+         method = method.to_s.upcase
+         block.call @handler
+      end
 
    end
 
