@@ -8,30 +8,37 @@ module Cold
       # @routeInfo(method,path,array of handlers)
 
       def initialize
-         @routeInfo = {
-            "GET" => {
-               "/" => [
-                  ->(f : Cold::Facade){
-                     f.send "Hello world"
-                  }
-               ]
-            }
-         }
+         @routeInfo = {} of String => Hash(String, Array(Proc(Cold::Facade,Nil)))
       end
 
       def addRoute(method : String, path : String,p : Proc(Cold::Facade,Nil))
-         @routeInfo[method][path].push(p);
+         begin
+            @routeInfo[method]
+         rescue
+            @routeInfo[method] = {} of String => Array(Proc(Cold::Facade,Nil))
+         ensure
+            begin
+               @routeInfo[method][path]
+            rescue
+               @routeInfo[method][path] = [] of Proc(Cold::Facade,Nil)
+            ensure
+               @routeInfo[method][path].push(p);
+            end
+         end
       end
 
       # def addRoute(method : String, path : String, Proc)
       
       def call(context : HTTP::Server::Context)
 
+         # PrettyPrint.format(@routeInfo,STDOUT,80,"\n",4)
+         # puts @routeInfo
+
          # Try to access the procs from @routeInfo. If any exceptions are raised then the 
          # reason is because it doesn't exist and that means it's a 404
 
          begin 
-            @routeInfo[context.request.method][context.request.path]
+            @routeInfo[context.request.method][context.request.resource]
          rescue ex
             context.response.content_type = "text/plain"
             context.response.status_code = 404
@@ -39,7 +46,7 @@ module Cold
             return
          end
 
-         routes = @routeInfo[context.request.method][context.request.path]
+         routes = @routeInfo[context.request.method][context.request.resource]
 
          i = 0
          while i < routes.size

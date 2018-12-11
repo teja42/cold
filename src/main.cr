@@ -39,9 +39,9 @@ module Cold
 
       end
 
-      def on(method : String , path : String , &block : Cold::Facade -> _)
+      def on(method : String , path : String , &block : Cold::Facade -> Nil)
          method = method.to_s.upcase
-         block.call @handler
+         @handler.addRoute(method,path,block)
       end
 
    end
