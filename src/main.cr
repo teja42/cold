@@ -44,6 +44,14 @@ module Cold
          @handler.addRoute(method,path,block)
       end
 
+      def use(method : String, path : String, &block : Cold::Facade, Proc(Nil,Nil) -> Nil)
+         @handler.addMiddleware(method,path,block)
+      end
+
+      def use(path : String, &block : Cold::Facade, Proc(Nil,Nil) -> Nil)
+         @handler.addMiddleware("all",path,block)
+      end
+
    end
 
 end

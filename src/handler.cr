@@ -4,31 +4,47 @@ module Cold
    class Handler
       include HTTP::Handler
 
-      @routeInfo : Hash(String,Hash(String, Proc(Cold::Facade,Nil)))
-      # @routeInfo(method,path,array of handlers)
+      @n : Int16 # Because I don't think there will be more than 65_536 middlewares in a single app
+      @routeInfo : Hash(String,Hash(String, NamedTuple(route: Proc(Cold::Facade,Nil),mw: Array(Int16) )))
+      @middleware : Hash(String, Hash(String, Int16))
+      @middlewareHandler = [] of Proc(Cold::Facade, Proc(Nil,Nil), Nil)
 
       def initialize
-         @routeInfo = {} of String => Hash(String, Proc(Cold::Facade,Nil))
+         @n = 0
+         @routeInfo = {} of String => Hash(String, NamedTuple(route: Proc(Cold::Facade,Nil),mw: Array(Int16)))
+         @middleware = {} of String => Hash(String, Int16)
+         @middlewareHandler = [] of Proc(Cold::Facade, Proc(Nil,Nil), Nil)
       end
 
       def addRoute(method : String, path : String,p : Proc(Cold::Facade,Nil))
          begin
             @routeInfo[method]
          rescue
-            @routeInfo[method] = {} of String => Proc(Cold::Facade,Nil)
+            @routeInfo[method] = {} of String => NamedTuple(route: Proc(Cold::Facade,Nil),mw: Array(Int16))
          ensure
-            @routeInfo[method][path] = p
+            @routeInfo[method][path] = {
+               route: p,
+               mw: [] of Int16
+            }
          end
       end
-      
-      def call(context : HTTP::Server::Context)
 
-         # PrettyPrint.format(@routeInfo,STDOUT,80,"\n",4)
-         # puts @routeInfo
+      def addMiddleware(method : String, path : String, p : Proc(Cold::Facade, Proc(Nil,Nil) ,Nil) )
+         begin
+            @middleware[method]
+         rescue
+            @middleware[method] = {} of String => Int16
+         ensure
+            @middlewareHandler << p
+            @middleware[method][path] = @n
+            @n+=1
+         end
+      end
+
+      def call(context : HTTP::Server::Context)
 
          # Try to access the procs from @routeInfo. If any exceptions are raised then the 
          # reason is because it doesn't exist and that means it's a 404
-
          begin 
             @routeInfo[context.request.method][context.request.resource]
          rescue ex
@@ -38,8 +54,12 @@ module Cold
             return
          end
 
-         route = @routeInfo[context.request.method][context.request.resource]
+         # Run middlewares if any
 
+         # PrettyPrint.format(@middleware,STDOUT,80,"\n",4);
+
+         # Obtain the route and execute it
+         route = @routeInfo[context.request.method][context.request.resource][:route]
          begin
             route.call(Cold::Facade.new(context))
          rescue ex
