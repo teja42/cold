@@ -4,10 +4,10 @@ module Cold
    class Handler
       include HTTP::Handler
 
-      @n : Int16 # Because I don't think there will be more than 65_536 middlewares in a single app
-      @routeInfo : Hash(String,Hash(String, NamedTuple(route: Proc(Cold::Facade,Nil),mw: Array(Int16) )))
-      @middleware : Hash(String, Hash(String, Int16))
-      @middlewareHandler = [] of Proc(Cold::Facade, Proc(Nil,Nil), Nil)
+      private @n : Int16 # Because I don't think there will be more than 65_536 middlewares in a single app
+      private @routeInfo : Hash(String,Hash(String, NamedTuple(route: Proc(Cold::Facade,Nil),mw: Array(Int16) )))
+      private @middleware : Hash(String, Hash(String, Int16))
+      private @middlewareHandler = [] of Proc(Cold::Facade, Proc(Nil,Nil), Nil)
 
       def initialize
          @n = 0
@@ -16,7 +16,23 @@ module Cold
          @middlewareHandler = [] of Proc(Cold::Facade, Proc(Nil,Nil), Nil)
       end
 
+      private def pathCheck(path : String -> Int8)
+         if path=="/"
+            return 0
+         elsif !path.starts_with?("/") || path.ends_with?("/")
+            raise "Error : `#{path}` is not a valid path name. It should start with / and should NOT end with /"
+            return -1
+         else 
+            return 0
+         end
+      end
+
       def addRoute(method : String, path : String,p : Proc(Cold::Facade,Nil))
+
+         if pathCheck(path)!=0
+            return
+         end
+
          begin
             @routeInfo[method]
          rescue
@@ -30,6 +46,11 @@ module Cold
       end
 
       def addMiddleware(method : String, path : String, p : Proc(Cold::Facade, Proc(Nil,Nil) ,Nil) )
+
+         if pathCheck(path)!=0
+            return
+         end
+
          begin
             @middleware[method]
          rescue
@@ -72,6 +93,9 @@ module Cold
 
          end
 
+      end
+
+      def bind_middlewares
       end
 
    end

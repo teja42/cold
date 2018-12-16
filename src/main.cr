@@ -24,6 +24,10 @@ module Cold
             @port = port
          end
 
+         if @handler.bind_middlewares !=0
+            return
+         end
+
          server = HTTP::Server.new([
             @handler
          ])
